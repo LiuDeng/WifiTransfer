@@ -22,18 +22,20 @@ import android.widget.TextView;
 import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
+import com.xzwzz.transfer.WifiConnectChangedReceiver;
+import com.xzwzz.transfer.WifiUtils;
+import com.xzwzz.transfer.interf.WifiConnectChangeListener;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.Unbinder;
-import timber.log.Timber;
 
 /**
  * Created by masel on 2016/10/10.
  */
 
-public class PopupMenuDialog {
+public class PopupMenuDialog implements WifiConnectChangeListener {
     Unbinder mUnbinder;
     @BindView(R.id.popup_menu_title)
     TextView mTxtTitle;
@@ -49,7 +51,7 @@ public class PopupMenuDialog {
     Button mBtnWifiSettings;
     @BindView(R.id.shared_wifi_button_split_line)
     View mButtonSplitLine;
-    WifiConnectChangedReceiver mWifiConnectChangedReceiver = new WifiConnectChangedReceiver();
+    WifiConnectChangedReceiver mWifiConnectChangedReceiver = new WifiConnectChangedReceiver(this);
     private Context context;
     private Dialog dialog;
     private Display display;
@@ -120,10 +122,6 @@ public class PopupMenuDialog {
         context.unregisterReceiver(mWifiConnectChangedReceiver);
     }
 
-    @Subscribe(tags = {@Tag(Constants.RxBusEventType.WIFI_CONNECT_CHANGE_EVENT)})
-    public void onWifiConnectStateChanged(NetworkInfo.State state) {
-        checkWifiState(state);
-    }
 
     void checkWifiState(NetworkInfo.State state) {
         if (state == NetworkInfo.State.CONNECTED || state == NetworkInfo.State.CONNECTING) {
@@ -169,18 +167,22 @@ public class PopupMenuDialog {
         mImgLanState.setImageResource(R.drawable.shared_wifi_enable);
         mTxtStateHint.setText(R.string.pls_input_the_following_address_in_pc_browser);
         mTxtAddress.setVisibility(View.VISIBLE);
-        mTxtAddress.setText(String.format(context.getString(R.string.http_address), ipAddr, Constants.HTTP_PORT));
+        mTxtAddress.setText(String.format(context.getString(R.string.http_address), ipAddr, 123456));
         mButtonSplitLine.setVisibility(View.GONE);
         mBtnWifiSettings.setVisibility(View.GONE);
     }
 
     void onDialogDismiss(DialogInterface dialog) {
-        Timber.d("dialog dismiss!");
         if (mUnbinder != null) {
             mUnbinder.unbind();
             RxBus.get().post(Constants.RxBusEventType.POPUP_MENU_DIALOG_SHOW_DISMISS, Constants.MSG_DIALOG_DISMISS);
             unregisterWifiConnectChangedReceiver();
             RxBus.get().unregister(PopupMenuDialog.this);
         }
+    }
+
+    @Override
+    public void changeWifiState(NetworkInfo.State state) {
+        checkWifiState(state);
     }
 }

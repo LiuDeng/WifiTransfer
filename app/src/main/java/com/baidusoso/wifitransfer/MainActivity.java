@@ -1,5 +1,6 @@
 package com.baidusoso.wifitransfer;
 
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.os.Bundle;
@@ -15,10 +16,13 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.TextView;
 
+import com.hjq.permissions.OnPermission;
+import com.hjq.permissions.XXPermissions;
 import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
+import com.xzwzz.transfer.WebService;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -33,9 +37,8 @@ import rx.Observer;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
-import timber.log.Timber;
 
-public class MainActivity extends AppCompatActivity implements Animator.AnimatorListener {
+public class MainActivity extends AppCompatActivity implements Animator.AnimatorListener, OnPermission {
 
     Unbinder mUnbinder;
     @BindView(R.id.toolbar)
@@ -47,6 +50,10 @@ public class MainActivity extends AppCompatActivity implements Animator.Animator
 
     List<String> mBooks = new ArrayList<>();
     BookshelfAdapter mBookshelfAdapter;
+    private final String[] mPermission = {
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+    };
+    private static final File savePath = new File(Environment.getExternalStorageDirectory() + File.separator + "TFBDCache");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,8 +61,14 @@ public class MainActivity extends AppCompatActivity implements Animator.Animator
         setContentView(R.layout.activity_main);
         mUnbinder = ButterKnife.bind(this);
         setSupportActionBar(mToolbar);
-        Timber.plant(new Timber.DebugTree());
+
+        WebService.setDIR(savePath);
+        WebService.setHttpPort(12345);
+
         RxBus.get().register(this);
+        XXPermissions.with(this)
+                .permission(mPermission)
+                .request(this);
         initRecyclerView();
     }
 
@@ -112,26 +125,43 @@ public class MainActivity extends AppCompatActivity implements Animator.Animator
         mBookList.setHasFixedSize(true);
         mBookList.setLayoutManager(new GridLayoutManager(this, 3));
         mBookList.setAdapter(mBookshelfAdapter);
-        RxBus.get().post(Constants.RxBusEventType.LOAD_BOOK_LIST, 0);
+        loadBookList(0);
     }
 
-    @Subscribe(thread = EventThread.IO, tags = {@Tag(Constants.RxBusEventType.LOAD_BOOK_LIST)})
     public void loadBookList(Integer type) {
-        Timber.d("loadBookList:" + Thread.currentThread().getName());
-        List<String> books = new ArrayList<>();
-        File dir = Constants.DIR;
-        if (dir.exists() && dir.isDirectory()) {
-            String[] fileNames = dir.list();
-            if (fileNames != null) {
-                for (String fileName : fileNames) {
-                    books.add(fileName);
+        Observable.create(new Observable.OnSubscribe<List<String>>() {
+            @Override
+            public void call(Subscriber<? super List<String>> subscriber) {
+                List<String> books = new ArrayList<>();
+                File dir = savePath;
+                if (dir.exists() && dir.isDirectory()) {
+                    String[] fileNames = dir.list();
+                    if (fileNames != null) {
+                        for (String fileName : fileNames) {
+                            books.add(fileName);
+                        }
+                    }
                 }
+                subscriber.onNext(books);
+                subscriber.onCompleted();
             }
-        }
-        runOnUiThread(() -> {
-            mBooks.clear();
-            mBooks.addAll(books);
-            mBookshelfAdapter.notifyDataSetChanged();
+        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(new Observer<List<String>>() {
+            @Override
+            public void onCompleted() {
+                mBookshelfAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                mBookshelfAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onNext(List<String> books) {
+                mBooks.clear();
+                mBooks.addAll(books);
+                mBookshelfAdapter.notifyDataSetChanged();
+            }
         });
     }
 
@@ -141,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements Animator.Animator
             @Override
             public void call(Subscriber<? super List<String>> subscriber) {
                 List<String> books = new ArrayList<>();
-                File dir = Constants.DIR;
+                File dir = savePath;
                 if (dir.exists() && dir.isDirectory()) {
                     String[] fileNames = dir.list();
                     for (String fileName : fileNames) {
@@ -168,6 +198,16 @@ public class MainActivity extends AppCompatActivity implements Animator.Animator
                 mBooks.addAll(books);
             }
         });
+    }
+
+    @Override
+    public void hasPermission(List<String> granted, boolean isAll) {
+
+    }
+
+    @Override
+    public void noPermission(List<String> denied, boolean quick) {
+
     }
 
     class BookshelfAdapter extends RecyclerView.Adapter<BookshelfAdapter.MyViewHolder> {

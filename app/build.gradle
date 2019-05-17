@@ -24,19 +24,19 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: "*.jar")
+    compile fileTree(include: '*.jar', dir: 'libs')
     compile deps.supportAppCompat
     compile deps.supportDesign
     compile deps.butterknife
     apt deps.butterknifeCompiler
-//    compile deps.retrofit2
-//    compile deps.rxjava
-//    compile deps.converterGson
-//    compile deps.adapterRxjava
-//    compile deps.rxandroid
+    //    compile deps.retrofit2
+    //    compile deps.rxjava
+    //    compile deps.converterGson
+    //    compile deps.adapterRxjava
+    //    compile deps.rxandroid
     compile(deps.rxbus) {
         exclude group: 'com.jakewharton.timber', module: 'timber'
     }
-    compile deps.androidasync
-    compile deps.timber
+    compile deps.permission
+    compile project(':transfer')
 }

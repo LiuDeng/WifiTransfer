@@ -1,0 +1,40 @@
+apply plugin: 'com.android.library'
+apply plugin: 'me.tatarka.retrolambda'
+
+android {
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
+
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.koushikdutta.async:androidasync:2.+'
+    compile 'com.jakewharton.timber:timber:4.1.2'
+}
+ext.GROUP="com.xzwzz"
+ext.VERSION_NAME="1.1.0"
+ext.POM_ARTIFACT_ID="wifi-transform"
+//引用gradle_maven_push.gradle
+apply from: "${project.rootDir}/gradle_maven_push.gradle"
