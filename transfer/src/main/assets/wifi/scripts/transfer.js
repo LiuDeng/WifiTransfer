@@ -410,7 +410,8 @@ $(function() {
 			fillFilesContainer();
 		});
 		bindAjaxUpload('#newfile_0');
-		
+		bindAjaxUpload('#newfile_1');
+
 		if (typeof(Worker) !== "undefined") {
 			showHtml5View();
 		} else {
